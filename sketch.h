@@ -222,6 +222,8 @@ REG(SENS_SAR_TOUCH_ENABLE_REG)[0] = 0;
  
 int sset(void) {
   //esp_task_wdt_init(30, false);
+  //to be fixed
+  
   REG(ESP32_SENS_SAR_DAC_CTRL1)[0] = 0x0; 
   REG(ESP32_SENS_SAR_DAC_CTRL2)[0] = 0x0; 
   initDIG();
