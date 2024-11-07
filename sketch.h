@@ -32,23 +32,33 @@ void printR();
 #define CLKMAGIC 4
 uint32_t akkuval;
 
+
+bool butt;
+bool buttest;
+int buttflip;
+void IRAM_ATTR pigHandler() {
+// butt = !butt;
+
+  int buttnow = (GPIO_IN1_REG[0]&0x1);
+   if (buttnow) butt = !butt;
+ buttest=true;
+ }
 void IRAM_ATTR digHandler() {
  //uint32_t r = REG(GPIO_STATUS_REG)[0];
 uint32_t r = REG(GPIO_STATUS1_REG)[0];
  REG(GPIO_STATUS_W1TC_REG)[0]=0xFFFFFFFF;
  REG(GPIO_STATUS1_W1TC_REG)[0]=0xFFFFFFFF;
  //if (r & BIT(2)){  
- 
- //printf("%08x\n",(int)dell);
+ //if (delayptr==0)   printf("%08x\n",(int)dell);
 REG(I2S_CONF_REG)[0] &= ~(BIT(5)); 
  
  
  
  
   volatile uint32_t *rr = REG(I2S_FIFO_RD_REG);
-  akkuval += rr[0]>>16;
+  //akkuval += rr[0]>>16;
   akkuval = akkuval >> 1;
- // akkuval = rr[0];
+  akkuval = rr[0]>>16;
   
   
 
@@ -66,7 +76,7 @@ REG(I2S_CONF_REG)[0] &= ~(BIT(5));
    //REG(I2S_CONF_REG)[0] |= (BIT(1)); //start rx
    //REG(I2S_CONF_REG)[0] &= ~(BIT(1)); //start rx
 
-  
+ 
   if (GPIO_IN1_REG[0]&0x8) delayptr++;
   else delayptr--;
   delayptr=delayptr&0x1FFFF;
@@ -80,13 +90,22 @@ REG(I2S_CONF_REG)[0] &= ~(BIT(5));
   } 
     if (delayptr&0x10000) delptr = delaybuffa;
   else delptr = delaybuffb;
+  int buttnow = (GPIO_IN1_REG[0]&0x1);
+  if (buttflip^buttnow)
+   if (buttnow) butt = !butt;
+  buttflip =  buttnow;//(GPIO_IN1_REG[0]&0x1);
   
-  GPIO_OUT_REG[0]=(uint32_t)(delayptr<<12);
+  if (butt) GPIO_OUT_REG[0]=(1<<5)|(uint32_t)(delayptr<<12);
+  else GPIO_OUT_REG[0]=(uint32_t)(delayptr<<12);
   //if (~GPIO_IN1_REG[0]&0x8)  
   dell = delptr[delayptr&0xFFFF];
   delptr[delayptr&0xFFFF]=(uint8_t)(akkuval>>4);
   
   REG(ESP32_RTCIO_PAD_DAC2)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((dell&0xFF)<<19);
+ 
+//  REG(ESP32_RTCIO_PAD_DAC2)[0] =  BIT(10) | BIT(17) | BIT(18) |  (0x80<<19);
+ 
+  
   REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((REG(RNG_REG)[0]&0xFF)<<19);
 
      //REG(I2S_INT_CLR_REG)[0]=0xFFFFFFFF;
@@ -156,7 +175,10 @@ void initDIG() {
   //adc set i2s data len patterns should be zero
   
   //adc set data pattern
+  
   CHANG(APB_SARADC_SAR1_PATT_TAB1_REG,0x6D6D6D6D)
+//not attenuated enough to get buttock of 128
+  CHANG(APB_SARADC_SAR1_PATT_TAB1_REG,0x6E6E6E6E)
   CHANG(APB_SARADC_SAR2_PATT_TAB1_REG,0x0D0D0D0D)
   
   //adc set controller DIG
@@ -234,6 +256,7 @@ int sset(void) {
   REG(IO_MUX_GPIO12ISH_REG)[2]=BIT(13);
   REG(IO_MUX_GPIO12ISH_REG)[3]=BIT(13);
   //straight out
+    GPIO_FUNC_OUT_SEL_CFG_REG[5]=256;
   GPIO_FUNC_OUT_SEL_CFG_REG[12]=256;
   GPIO_FUNC_OUT_SEL_CFG_REG[13]=256;
   GPIO_FUNC_OUT_SEL_CFG_REG[14]=256;
@@ -246,11 +269,13 @@ int sset(void) {
   GPIO_FUNC_OUT_SEL_CFG_REG[22]=256;
   GPIO_FUNC_OUT_SEL_CFG_REG[23]=256;
   GPIO_FUNC_OUT_SEL_CFG_REG[27]=256;
-  REG(GPIO_ENABLE_REG)[0]=0|BIT(12)|BIT(13)
+  REG(GPIO_ENABLE_REG)[0]=BIT(5)|BIT(12)|BIT(13)
   |BIT(14)|BIT(15)|BIT(16)|BIT(17)|BIT(18)
   |BIT(19)|BIT(21)|BIT(22)|BIT(23)|BIT(27);
-  //36 and 39
+  //36 and 39  
   REG(GPIO_ENABLE_REG)[3]=0;
+    REG(IO_MUX_GPIO32_REG)[0]=BIT(9)|BIT(8); //input enable
+
   REG(IO_MUX_GPIO36_REG)[0]=BIT(9)|BIT(8); //input enable
   REG(IO_MUX_GPIO36_REG)[3]=BIT(9)|BIT(8); //input enable
   REG(IO_MUX_GPIO34_REG)[1]=BIT(9)|BIT(8); //input enable
@@ -265,13 +290,17 @@ int sset(void) {
   //7risingedge 8falling) 15prointerrupt 13appinterrup
   REG(IO_MUX_GPIO2_REG)[0]=BIT(9)|BIT(8); //input enable
   //pinMode(2, INPUT_PULLUP);
-  attachInterrupt(2,digHandler,FALLING);
-  
+ attachInterrupt(2,digHandler,FALLING);
+
+//  return 0;
+//  attachInterrupt(32,pigHandler,CHANGE);
+  int ryo;
   for (;;) {
-
-
-
+    ryo++;
+if (ryo>1000) ryo = 0;
+//if (ryo==0)printf("buttock%d\n",dell);
   
    }
+//   printf("buttock%d\n",ryo);
   return 0;
 }  
