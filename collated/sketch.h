@@ -14,11 +14,20 @@ void initDIG() {
   //ADC POWER ALWAYS ON
   CHANGNO(SENS_SAR_MEAS_CTRL_REG,(uint32_t)0xFFFF)
   CHANGNO(SENS_SAR_MEAS_CTRL_REG,(uint32_t)0x000F0000)
+//LNA low noise amp example
+  //CHANG(SENS_SAR_MEAS_CTRL_REG,(uint32_t)0xFF3F038F)
+//CHANG(SENS_SAR_MEAS_CTRL_REG,(uint32_t)0xFF07338F) //default
+
+  
   REG(SENS_SAR_MEAS_WAIT1_REG)[0] = 0x00010001;
+    REG(SENS_SAR_MEAS_WAIT1_REG)[0] = 0xFFFFFFFF;
   CHANGOR(SENS_SAR_MEAS_WAIT2_REG,BIT(17)|BIT(18)|BIT(19))
   CHANGOR(SENS_SAR_MEAS_WAIT2_REG,BIT(19)|BIT(18))
   CHANGNO(SENS_SAR_MEAS_WAIT2_REG,(uint32_t)0xFFFF)
   REG(SENS_SAR_MEAS_WAIT2_REG)[0] |= 0x2;//|BIT(17)|BIT(19);
+  CHANG(SENS_SAR_MEAS_WAIT2_REG,BIT(18)|BIT(19)|BIT(17)|BIT(16)|0xFFF)
+   //
+   //CHANG(SENS_SAR_MEAS_WAIT2_REG,BIT(19)|BIT(17)|0xFFF)
   
   CHANG(I2S_INT_ENA_REG,0) //disable interrupt
   CHANGNO(I2S_INT_CLR_REG,0)
@@ -51,7 +60,7 @@ void initDIG() {
   CHANGNO(I2S_SAMPLE_RATE_CONF_REG,(63<<6))
   CHANGOR(I2S_SAMPLE_RATE_CONF_REG,(BCKMAGIC))
   //50
-  prr("I2S_INT_RAW_REG",I2S_INT_RAW_REG);
+  prr("I2S_INT_RAW_REG",I2S_INT_RAW_REG); 
   
   //adc set i2s data len patterns should be zero
   
@@ -59,11 +68,15 @@ void initDIG() {
   
   CHANG(APB_SARADC_SAR1_PATT_TAB1_REG,0x6D6D6D6D)
 //not attenuated enough to get buttock of 128
-  CHANG(APB_SARADC_SAR1_PATT_TAB1_REG,0x6E6E6E6E)
-  CHANG(APB_SARADC_SAR2_PATT_TAB1_REG,0x0D0D0D0D)
+  CHANG(APB_SARADC_SAR1_PATT_TAB1_REG,0x6E6E6E6E)  
+  CHANG(APB_SARADC_SAR2_PATT_TAB1_REG,0x0E0E0E0E)
   
   //adc set controller DIG
   CHANGOR(SENS_SAR_READ_CTRL_REG,BIT(27)|BIT(28))
+  
+  CHANG(SENS_SAR_READ_CTRL_REG,BIT(27)|BIT(28)|BIT(17)|BIT(16)|0xffff)
+  //bottom bytes sample cycle and clock div
+  
   CHANGOR(SENS_SAR_READ_CTRL2_REG,BIT(28)|BIT(29))
   CHANG(ESP32_SENS_SAR_MEAS_START1,BIT(31)|BIT(19+6)|BIT(18)) 
   CHANG(ESP32_SENS_SAR_MEAS_START2,BIT(31)|BIT(19)|BIT(18))
@@ -71,6 +84,7 @@ void initDIG() {
  
  
    #define CTRLJING BIT(26)|(CLKDIVMAGIC)|BIT(6)|BIT(2)|BIT(3)
+   
    #define CTRLPATT 0 //BIT(15)|BIT(19)
   #define CTRLJONG BIT(24)|BIT(23)
     //26datatoi2s 25sarsel 9clkdiv4 6clkgated 3double 2sar2mux
@@ -87,11 +101,14 @@ void initDIG() {
   CHANGNOR(APB_SARADC_CTRL_REG,CTRLJONG)
 //  CHANGOR(I2S_CLKM_CONF_REG,BIT(21)|4)//clockenable
   CHANGOR(APB_SARADC_CTRL2_REG,BIT(10)|BIT(9)|BIT(0));
-  CHANG(APB_SARADC_CTRL2_REG,BIT(10)|BIT(9)|BIT(1)|BIT(0));//trying to limit to 1
-REG(SENS_SAR_TOUCH_ENABLE_REG)[0] = 0;
+   CHANG(APB_SARADC_CTRL2_REG,BIT(10)|BIT(9)|BIT(1)|BIT(0));//trying to limit to 1
 
-#define bufflough 7
-  dmall[0]=0xC0|BIT(bufflough+12)|BIT(bufflough);
+   //inverting and not inverting 10 and 9 data to adc ctrl no effect
+   //CHANG(APB_SARADC_CTRL2_REG,BIT(1)|BIT(0));//trying to limit to 1
+   REG(SENS_SAR_TOUCH_ENABLE_REG)[0] = 0;
+
+#define bufflough 7//3
+dmall[0]=0xC0|BIT(bufflough+12)|BIT(bufflough);
   //owner dma, eof, 128, 128
   //uint16_t*buff=&dmabuff[0];
   //dmall[1]=(uint32_t)buff;
