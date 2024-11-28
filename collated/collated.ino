@@ -2,11 +2,12 @@
 //try ff50ff08
 //0xFF056408 from code example
  //timekeep-1 startwait5 standbywait100 rstbwait8
+ //2 8 FF 8
 // 2 16 FF 08
-#define CLKDIVMAGIC ((2)<<9) //7 and 8
-#define BCKMAGIC 4<<6 //6 7
-#define CLKMAGIC 4
-#define ADC1_PATT (0x6E<<24)
+#define CLKDIVMAGIC ((8)<<9) //7 and 8 2<<7
+#define BCKMAGIC 6<<6 //6 7
+#define CLKMAGIC 6 //4
+#define ADC1_PATT (0x6C<<24)
 #define ADC2_PATT (0x0E<<24)
 
 
@@ -15,6 +16,10 @@
 #define delaysiz (1<<16)
 uint8_t *delaybuffa;
 uint8_t * delaybuffb;
+
+uint8_t * delaybuffd;
+uint8_t * delaybuffc;
+
 uint8_t *delptr=delaybuffa; 
 uint8_t adc_histogram[256];
 
@@ -56,7 +61,7 @@ void IRAM_ATTR pigHandler() {
   else delayptr--; 
   delayptr=delayptr&0x1FFFF;
 
-  if (GPIO_IN1_REG[0]&0x10)  {
+  if (GPIO_IN1_REG[0]&0x2)  {
    if (lastskp==0) delayskp = delayptr;
    lastskp = 1;
   } else {
@@ -81,7 +86,13 @@ void setup() {
  delptr=delaybuffa;
  delayptr=0;
  delaybuffb=(uint8_t*)malloc(delaysiz);
- printf("yodel %08x,%08x\n",delaybuffa,delaybuffb);
+
+ delaybuffd=(uint8_t*)malloc(delaysiz>>2);
+ 
+ delaybuffc=(uint8_t*)malloc(delaysiz>>2);
+
+// delaybuffc=(uint8_t*)malloc(delaysiz);
+ printf("yodel %08x,%08x,%08x,%08x\n",delaybuffa,delaybuffb,delaybuffc,delaybuffd);
  sset();
  attachInterrupt(2,pigHandler,FALLING);
 }
