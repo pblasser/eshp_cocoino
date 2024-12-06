@@ -14,9 +14,7 @@
 #define REG(x) ((volatile uint32_t *) (x))
 
 
-
-
-
+#define SPI2_CMD_REG  0x3ff64000
 #define SPI2_CTRL_REG  0x3ff64008
 #define SPI2_CTRL2_REG  0x3ff64014
 #define SPI2_CLOCK_REG  0x3ff64018
@@ -24,13 +22,42 @@
 #define SPI2_W0_REG  0x3ff64080
 #define SPI2_W8_REG  0x3ff640a0
 
-#define SPI2_MISO_DLEN_REG  0x3ff64028
+#define SPI3_MISO_DLEN_REG  0x3ff64028
 #define SPI2_MOSI_DLEN_REG  0x3ff6402C
 #define SPI2_USER_REG  0x3ff6401C
 
+#define SPI3_CMD_REG  0x3ff65000
+#define SPI3_CTRL_REG  0x3ff65008
+#define SPI3_CTRL2_REG  0x3ff65014
+#define SPI3_CLOCK_REG  0x3ff65018
+#define SPI3_PIN_REG  0x3ff65034
+#define SPI3_W0_REG  0x3ff65080
+#define SPI3_W8_REG  0x3ff650a0
+
+#define SPI3_MOSI_DLEN_REG  0x3ff65028
+
+#define SPI3_MIS0_DLEN_REG  0x3ff6502C
+#define SPI3_USER_REG  0x3ff6501C
 
 
 
+#define DPORT_PERIP_CLK_EN_REG 0x3FF000C0
+#define DPORT_PERIP_RST_EN_REG 0x3FF000C4
+#define DPORT_WIFI_CLK_EN_REG 0x3FF000CC
+#define DPORT_PRO_GPIO_INTERRUPT_MAP_REG 0x3FF0015C
+#define GPIO_PIN_REG 0x3FF44088
+#define IO_MUX_GPIO2_REG 0x3FF49040
+#define IO_MUX_GPIO12ISH_REG 0x3FF49030
+#define IO_MUX_GPIO5_REG 0x3FF4906c
+#define IO_MUX_GPIO18_REG 0x3FF49070
+#define IO_MUX_GPIO19_REG 0x3FF49074
+#define IO_MUX_GPIO23_REG 0x3FF4908c
+#define IO_MUX_GPIO16_REG 0x3FF4904C
+#define IO_MUX_GPIO32_REG 0x3FF4901C
+#define IO_MUX_GPIO34_REG 0x3FF49014
+#define IO_MUX_GPIO36_REG 0x3FF49004
+#define GPIO_STATUS_REG 0x3FF44044
+#define GPIO_STATUS_W1TC_REG 0x3FF4404C
 
 
 #define ESP32_SENS_SAR_DAC_CTRL1  0x3ff48898
@@ -112,21 +139,6 @@
 #define I2S_INLINK_DSCR_REG 0x3FF4F048
 //CALL REGS AS REGS AND NOT IF NOT
 
-#define DPORT_PERIP_CLK_EN_REG 0x3FF000C0
-#define DPORT_PERIP_RST_EN_REG 0x3FF000C4
-#define DPORT_WIFI_CLK_EN_REG 0x3FF000CC
-#define DPORT_PRO_GPIO_INTERRUPT_MAP_REG 0x3FF0015C
-#define GPIO_PIN_REG 0x3FF44088
-#define IO_MUX_GPIO2_REG 0x3FF49040
-#define IO_MUX_GPIO12ISH_REG 0x3FF49030
-#define IO_MUX_GPIO16_REG 0x3FF4904C
-#define IO_MUX_GPIO32_REG 0x3FF4901C
-
-#define IO_MUX_GPIO34_REG 0x3FF49014
-#define IO_MUX_GPIO36_REG 0x3FF49004
-
-#define GPIO_STATUS_REG 0x3FF44044
-#define GPIO_STATUS_W1TC_REG 0x3FF4404C
 extern  void ets_isr_unmask(uint32_t mask);
 extern  void xtos_set_interrupt_handler(int irq_number, void(*function)(void));
 // void (*xtosy)(int,void(*function)(void))=(void(*)(int,void(*)()))0x4000bf78;
@@ -224,26 +236,6 @@ static inline void spin(volatile unsigned long count) {
   while (count--) asm volatile("nop");
 }
 
-static inline uint64_t systick(void) {
-  REG(ESP32_TIMERGROUP0)[3] = 1;
-  spin(1);
-  return ((uint64_t) REG(ESP32_TIMERGROUP0)[2] << 32) |
-         REG(ESP32_TIMERGROUP0)[1];
-}
-
-static inline uint64_t uptime_us(void) {
-  return systick() >> 5;
-}
-
-static inline void delay_us(unsigned long us) {
-  uint64_t until = uptime_us() + us;    // Calculate timeout timestamp
-  while (uptime_us() < until) spin(1);  // Wait until until
-}
-
-static inline void delay_ms(unsigned long ms) {
-  delay_us(ms * 1000);
-}
-
 static inline void wdt_feed(void) {
   REG(ESP32_RTCCNTL)[40] |= BIT(31);
 }
@@ -284,46 +276,3 @@ static inline void soc_init(void) {
 #define GPIO_OUT1_REG REG(0X3ff44010)              // Pins 32-39
 #define GPIO_IN1_REG REG(0X3ff44040)               // Pins 32-39
 #define GPIO_ENABLE1_REG REG(0X3ff4402c)           // Pins 32-39
-
-static inline void gpio_output_enable(int pin, bool enable) {
-  volatile uint32_t *r = GPIO_ENABLE_REG;
-  if (pin > 31) pin -= 31, r = GPIO_ENABLE1_REG;
-  r[0] &= ~BIT(pin);
-  r[0] |= (enable ? 1U : 0U) << pin;
-}
-
-static inline void gpio_output(int pin) {
-  GPIO_FUNC_OUT_SEL_CFG_REG[pin] = 256;  // Simple output, TRM 4.3.3
-  gpio_output_enable(pin, 1);
-}
-
-static inline void gpio_write(int pin, bool value) {
-  volatile uint32_t *r = GPIO_OUT_REG;
-  if (pin > 31) pin -= 31, r = GPIO_OUT1_REG;
-  r[0] &= ~BIT(pin);                 // Clear first
-  r[0] |= (value ? 1U : 0U) << pin;  // Then set
-}
-
-static inline void gpio_toggle(int pin) {
-  volatile uint32_t *r = GPIO_OUT_REG;
-  if (pin > 31) pin -= 31, r = GPIO_OUT1_REG;
-  r[0] ^= BIT(pin);
-}
-
-static inline void gpio_input(int pin) {
-  // Index lookup table for IO_MUX_GPIOx_REG, TRM 4.12
-  unsigned char map[40] = {17, 34, 16, 33, 18, 27, 24, 25, 26, 21,  // 0-9
-                           22, 23, 13, 14, 12, 15, 19, 20, 28, 29,  // 10-19
-                           30, 31, 32, 35, 36, 9,  10, 11, 0,  0,   // 20-29
-                           0,  0,  7,  8,  5,  6,  1,  2,  3,  4};  // 30-39
-  volatile uint32_t *mux = REG(0X3ff49000);
-  if (pin < 0 || pin > (int) sizeof(map) || map[pin] == 0) return;
-  gpio_output_enable(pin, 0);  // Disable output
-  mux[map[pin]] |= BIT(9);     // Enable input
-}
-
-static inline bool gpio_read(int pin) {
-  volatile uint32_t *r = GPIO_IN_REG;
-  if (pin > 31) pin -= 31, r = GPIO_IN1_REG;
-  return r[0] & BIT(pin) ? 1 : 0;
-}
