@@ -41,8 +41,8 @@ int buttflip;
 
 
 void IRAM_ATTR pigHandler() {
- REG(GPIO_STATUS_W1TC_REG)[0]=0xFFFFFFFF;
- REG(GPIO_STATUS1_W1TC_REG)[0]=0xFFFFFFFF;
+ //REG(GPIO_STATUS_W1TC_REG)[0]=0xFFFFFFFF;
+ //REG(GPIO_STATUS1_W1TC_REG)[0]=0xFFFFFFFF;
  
  REG(SPI3_W0_REG)[0]=REG(RNG_REG)[0]&0xFFFF;
  REG(SPI3_CMD_REG)[0]=BIT(18);
@@ -118,7 +118,7 @@ void setup() {
   REG(SPI3_MISO_DLEN_REG)[0]=15;
     REG(SPI3_USER_REG)[0]=BIT(24)|BIT(0)|BIT(27);
     //USR_MOSI, MISO_HIGHPART, and DOUTDIN
-   REG(SPI3_CLOCK_REG)[0]=BIT(18)|(3<<12)|(1<<6)|3;
+   //REG(SPI3_CLOCK_REG)[0]=(0<<18)|(3<<12)|(1<<6)|3;
 
 
 
@@ -155,13 +155,14 @@ void setup() {
 
 void loop() {
   int ryo;
+  return;
   printf("yo");
   for (;;) {
     ryo++;
     if (ryo>1000000) ryo = 0;  
     if (ryo==0) { 
      //printf("\n-----%d-------%d\n",(int)REG(SPI2_USER_REG)[0],REG(SPI2_MOSI_DLEN_REG)[0]); 
-     printf("\n-----%x-------%d\n",(int)SPI2_USER_REG,REG(SPI3_MOSI_DLEN_REG)[0]); 
+     printf("\n-----%x-------%d\n",REG(SPI3_W8_REG)[0],REG(RNG_REG)[0]&0xFFFF); 
      
     }
  } 
