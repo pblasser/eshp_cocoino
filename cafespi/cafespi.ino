@@ -23,7 +23,7 @@ uint8_t * delaybuffd;
 uint8_t * delaybuffc;
 
 uint8_t *delptr=delaybuffa; 
-uint8_t adc_histogram[256];
+uint8_t *belptr=delaybuffc; 
 
 
 static int delayptr;
@@ -38,27 +38,37 @@ bool buttest;
 int buttflip;
   int readr;
 
-
+int ppread;
+int gyo;
+int forsh;
 
 void IRAM_ATTR pigHandler() {
  //REG(GPIO_STATUS_W1TC_REG)[0]=0xFFFFFFFF;
  //REG(GPIO_STATUS1_W1TC_REG)[0]=0xFFFFFFFF;
  
- REG(SPI3_W0_REG)[0]=REG(RNG_REG)[0]&0xFFFF;
+ REG(SPI3_W8_REG)[0]=(0x9000|ppread)<<16;
  REG(SPI3_CMD_REG)[0]=BIT(18);
+ gyo=REG(SPI3_W0_REG)[0];
+ gyo =gyo>>16;
  
- adc_read=3;
- //REG(I2S_CONF_REG)[0] &= ~(BIT(5)); 
- readr= (0xFFF&(adc_read>>16));
- dell = delptr[delayptr&0xFFFF];
- if (!butt)
- delptr[delayptr&0xFFFF]=(uint8_t)(255-(readr>>4));//(adc_read>>4); 
- REG(ESP32_RTCIO_PAD_DAC2)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((dell&0xFF)<<19);
- //  REG(ESP32_RTCIO_PAD_DAC2)[0] =  BIT(10) | BIT(17) | BIT(18) |  (0x80<<19);
- //  REG(ESP32_RTCIO_PAD_DAC2)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((uint8_t)akkuval<<19); 
- //REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((REG(RNG_REG)[0]&0xFF)<<19);
- adc_histogram[(readr>>4)&0xFF]++;
-
+  if (delayptr&0x10000) {
+    delptr = delaybuffa;
+    belptr = delaybuffc;
+    forsh=4;
+   }
+   else {
+    delptr = delaybuffb;
+    belptr = delaybuffd;
+    forsh=0;
+   }
+   ppread=((delptr[delayptr&0xFFFF])<<4);    
+   ppread |= ((belptr[delayptr>>1&0x7FFF])&(0xF<<forsh)>>forsh);
+ //if (!butt) {
+  delptr[delayptr&0xFFFF]=(uint8_t)(gyo>>4);
+  belptr[delayptr>>1&0x7FFF]&=(uint8_t)(gyo&0xF<<(4-forsh));
+  belptr[delayptr>>1&0x7FFF]|=(uint8_t)(gyo&0xF<<forsh);
+  
+ //}
   if (GPIO_IN1_REG[0]&0x8) delayptr++;
   else delayptr--; 
   delayptr=delayptr&0x1FFFF;
@@ -70,8 +80,7 @@ void IRAM_ATTR pigHandler() {
    if (lastskp) delayptr=delayskp;
    lastskp = 0;
   } 
-  if (delayptr&0x10000) delptr = delaybuffa;
-  else delptr = delaybuffb;
+
   int buttnow = (GPIO_IN1_REG[0]&0x1);
   if (buttflip^buttnow)
    if (buttnow) butt = !butt;
@@ -89,9 +98,9 @@ void setup() {
  delayptr=0;
  delaybuffb=(uint8_t*)malloc(delaysiz);
 
- delaybuffd=(uint8_t*)malloc(delaysiz>>2);
+ delaybuffd=(uint8_t*)malloc(delaysiz>>1);
  
- delaybuffc=(uint8_t*)malloc(delaysiz>>2);
+ delaybuffc=(uint8_t*)malloc(delaysiz>>1);
 
 // delaybuffc=(uint8_t*)malloc(delaysiz);
  printf("yodel %08x,%08x,%08x,%08x\n",delaybuffa,delaybuffb,delaybuffc,delaybuffd);
@@ -107,20 +116,35 @@ void setup() {
   REG(IO_MUX_GPIO12ISH_REG)[2]=BIT(13); //clk
   REG(IO_MUX_GPIO12ISH_REG)[3]=BIT(13); //cs0
 
-    CHANGOR(DPORT_PERIP_CLK_EN_REG,BIT(16))
+  CHANGOR(DPORT_PERIP_CLK_EN_REG,BIT(16))
   CHANGNOR(DPORT_PERIP_RST_EN_REG,BIT(16))
-
   REG(IO_MUX_GPIO5_REG)[0]=BIT(12); //sdi3 cs0
   REG(IO_MUX_GPIO18_REG)[0]=BIT(12); //sdi3 clk
   REG(IO_MUX_GPIO19_REG)[0]=BIT(12)|BIT(9); //sdi3 q MISO
   REG(IO_MUX_GPIO23_REG)[0]=BIT(12); //sdi3 d MOSI
   REG(SPI3_MOSI_DLEN_REG)[0]=15;
   REG(SPI3_MISO_DLEN_REG)[0]=15;
-    REG(SPI3_USER_REG)[0]=BIT(24)|BIT(0)|BIT(27);
+  REG(SPI3_USER_REG)[0]=BIT(25)|BIT(0)|BIT(27)|BIT(28)|BIT(7)|BIT(6)|BIT(5)|BIT(11)|BIT(10);
     //USR_MOSI, MISO_HIGHPART, and DOUTDIN
-   //REG(SPI3_CLOCK_REG)[0]=(0<<18)|(3<<12)|(1<<6)|3;
+  REG(SPI3_PIN_REG)[0]=BIT(29);
+  //REG(SPI3_CTRL2_REG)[0]=BIT(17);
 
 
+  REG(SPI3_CLOCK_REG)[0]=(1 <<18)|(3<<12)|(1<<6)|3;
+
+  #define SPINNER 5000000
+  #define SPIRTER(d) \
+    spin(SPINNER); \
+  REG(SPI3_W8_REG)[0]=(d)<<16; \ 
+  REG(SPI3_CMD_REG)[0]=BIT(18);\
+  spin(SPINNER);
+  //SPIRTER(0b0111110110101100); //sw_reset
+  SPIRTER(0x1201); //adc_seq,9rep,1chan0
+  SPIRTER(0x1800); //gen_ctrl_reg
+  SPIRTER(0x2001); //adc_config,io0adc0
+  SPIRTER(0x2802); //dac_config,io1dac1
+  SPIRTER(0x5a00); //pd_ref_ctrl,9vref
+  
 
   //straight out
   //LED//  GPIO_FUNC_OUT_SEL_CFG_REG[5]=256;
@@ -155,14 +179,23 @@ void setup() {
 
 void loop() {
   int ryo;
-  return;
+ // return;
   printf("yo");
   for (;;) {
     ryo++;
-    if (ryo>1000000) ryo = 0;  
-    if (ryo==0) { 
+    if (ryo>10000) ryo = 0;  
+    if (ryo==0) {
+      
+     int gyo;
+     gyo=REG(SPI3_W0_REG)[0];
+    
      //printf("\n-----%d-------%d\n",(int)REG(SPI2_USER_REG)[0],REG(SPI2_MOSI_DLEN_REG)[0]); 
-     printf("\n-----%x-------%d\n",REG(SPI3_W8_REG)[0],REG(RNG_REG)[0]&0xFFFF); 
+     //printf("\n-----%x-------%x\n",REG(SPI3_W8_REG)[0],REG(SPI3_W0_REG)[0]); 
+     
+     for(int z=31;z>=15;z--) {
+      //printf("%u",(gyo>>z)&1);
+     }
+     //printf("\n"); 
      
     }
  } 
