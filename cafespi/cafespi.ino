@@ -43,8 +43,8 @@ int gyo;
 int forsh;
 
 void IRAM_ATTR pigHandler() {
- //REG(GPIO_STATUS_W1TC_REG)[0]=0xFFFFFFFF;
- //REG(GPIO_STATUS1_W1TC_REG)[0]=0xFFFFFFFF;
+ REG(GPIO_STATUS_W1TC_REG)[0]=0xFFFFFFFF;
+ REG(GPIO_STATUS1_W1TC_REG)[0]=0xFFFFFFFF;
  
  REG(SPI3_W8_REG)[0]=(0x9000|ppread)<<16;
  REG(SPI3_CMD_REG)[0]=BIT(18);
@@ -132,12 +132,22 @@ void setup() {
 
   REG(SPI3_CLOCK_REG)[0]=(1 <<18)|(3<<12)|(1<<6)|3;
 
-  #define SPINNER 5000000
+  #define SPINNER 500000
   #define SPIRTER(d) \
-    spin(SPINNER); \
   REG(SPI3_W8_REG)[0]=(d)<<16; \ 
-  REG(SPI3_CMD_REG)[0]=BIT(18);\
+  REG(SPI3_CMD_REG)[0]=BIT(18); \
   spin(SPINNER);
+  spin(SPINNER*100);
+  
+  printf("yoz\n"); 
+  //SPIRTER(0b0111110110101100); //sw_reset
+  SPIRTER(0x1201); //adc_seq,9rep,1chan0
+  SPIRTER(0x1800); //gen_ctrl_reg
+  SPIRTER(0x2001); //adc_config,io0adc0
+  SPIRTER(0x2802); //dac_config,io1dac1
+  SPIRTER(0x5a00); //pd_ref_ctrl,9vref
+  
+  printf("yoz\n"); 
   //SPIRTER(0b0111110110101100); //sw_reset
   SPIRTER(0x1201); //adc_seq,9rep,1chan0
   SPIRTER(0x1800); //gen_ctrl_reg
