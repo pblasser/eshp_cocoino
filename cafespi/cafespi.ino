@@ -41,6 +41,7 @@ int buttflip;
 int ppread;
 int gyo;
 int forsh;
+uint32_t rdr;
 
 void IRAM_ATTR pigHandler() {
  REG(GPIO_STATUS_W1TC_REG)[0]=0xFFFFFFFF;
@@ -81,6 +82,15 @@ void IRAM_ATTR pigHandler() {
    lastskp = 0;
   } 
 
+      volatile uint32_t *rr = REG(ESP32_SENS_SAR_MEAS_START2);
+    //uint32_t rdrr = REG(ESP32_SENS_SAR_MEAS_START1)[0];
+    rdr = rr[0];
+    rdr=rdr>>4&0xFF;
+       REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  (rdr)<<19;
+    REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19); //pin g4
+     REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19)|BIT(17);
+
+     
   int buttnow = (GPIO_IN1_REG[0]&0x1);
   if (buttflip^buttnow)
    if (buttnow) butt = !butt;
@@ -109,7 +119,7 @@ void setup() {
   REG(ESP32_SENS_SAR_DAC_CTRL1)[0] = 0x0; 
   REG(ESP32_SENS_SAR_DAC_CTRL2)[0] = 0x0; 
   //initiate DIG
-      
+      initRTC();
   //function 2 on the 12 block
   REG(IO_MUX_GPIO12ISH_REG)[0]=BIT(13); //sdi2 q MISO
   REG(IO_MUX_GPIO12ISH_REG)[1]=BIT(13); //d MOSI
@@ -138,8 +148,12 @@ void setup() {
   REG(SPI3_CMD_REG)[0]=BIT(18); \
   spin(SPINNER);
   spin(SPINNER*100);
-  
+
+  //do a few nops firszt
   printf("yoz\n"); 
+  SPIRTER(0); //adc_seq,9rep,1chan0
+  SPIRTER(0); //adc_seq,9rep,1chan0
+  
   //SPIRTER(0b0111110110101100); //sw_reset
   SPIRTER(0x1201); //adc_seq,9rep,1chan0
   SPIRTER(0x1800); //gen_ctrl_reg
@@ -193,12 +207,13 @@ void loop() {
   printf("yo");
   for (;;) {
     ryo++;
-    if (ryo>10000) ryo = 0;  
+    if (ryo>1000000) ryo = 0;  
     if (ryo==0) {
       
      int gyo;
      gyo=REG(SPI3_W0_REG)[0];
-    
+    printf("\n-----%d-------%x\n",(int)rdr,(int)gyo); 
+     
      //printf("\n-----%d-------%d\n",(int)REG(SPI2_USER_REG)[0],REG(SPI2_MOSI_DLEN_REG)[0]); 
      //printf("\n-----%x-------%x\n",REG(SPI3_W8_REG)[0],REG(SPI3_W0_REG)[0]); 
      
