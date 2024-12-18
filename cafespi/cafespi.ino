@@ -51,6 +51,9 @@ void IRAM_ATTR pigHandler() {
  REG(SPI3_CMD_REG)[0]=BIT(18);
  gyo=REG(SPI3_W0_REG)[0];
  gyo =gyo>>16;
+//delpta, delpte, forsha, forshe
+//adc, dac
+//num
  
   if (delayptr&0x10000) {
     delptr = delaybuffa;
