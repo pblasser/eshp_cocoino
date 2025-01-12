@@ -74,7 +74,7 @@ void IRAM_ATTR pigHandler() {
   else delayptr--; 
   delayptr=delayptr&0x1FFFF;
 
-  if (GPIO_IN1_REG[0]&0x2)  {
+  if (GPIO_IN1_REG[0]&0x4)  {
    if (lastskp==0) delayskp = delayptr;
    lastskp = 1;
   } else {
@@ -87,7 +87,10 @@ void IRAM_ATTR pigHandler() {
     rdr = rr[0];
     rdr=rdr>>4&0xFF;
        REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  (rdr)<<19;
+  //  REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((REG(RNG_REG)[0]&0xFF)<<19);
+    REG(SENS_SAR_ATTEN2_REG)[0]=0x1;
     REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19); //pin g4
+    
      REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19)|BIT(17);
 
      
@@ -96,9 +99,9 @@ void IRAM_ATTR pigHandler() {
    if (buttnow) butt = !butt;
   buttflip =  buttnow;//(GPIO_IN1_REG[0]&0x1);
   
-  if (butt) GPIO_OUT_REG[0]=(1<<5)|(uint32_t)(delayptr<<12);
-  else GPIO_OUT_REG[0]=(uint32_t)(delayptr<<12);
-  //if (~GPIO_IN1_REG[0]&0x8)  
+  GPIO_OUT_REG[0]=(uint32_t)(delayptr<<12);
+  if (butt) GPIO_OUT_REG[3]=2;
+  else GPIO_OUT_REG[3]=0;  
 }
 
 
@@ -117,7 +120,7 @@ void setup() {
  //esp_task_wdt_init(30, false);
   //to be fixed
   REG(ESP32_SENS_SAR_DAC_CTRL1)[0] = 0x0; 
-  REG(ESP32_SENS_SAR_DAC_CTRL2)[0] = 0x0; 
+  //REG(ESP32_SENS_SAR_DAC_CTRL2)[0] = 0x0; 
   //initiate DIG
       initRTC();
   //function 2 on the 12 block
@@ -171,7 +174,9 @@ void setup() {
   
 
   //straight out
-  //LED//  GPIO_FUNC_OUT_SEL_CFG_REG[5]=256;
+  //LED//  
+  GPIO_FUNC_OUT_SEL_CFG_REG[33]=256;
+  
   GPIO_FUNC_OUT_SEL_CFG_REG[12]=256;
   GPIO_FUNC_OUT_SEL_CFG_REG[13]=256;
   GPIO_FUNC_OUT_SEL_CFG_REG[14]=256;
@@ -183,25 +188,20 @@ void setup() {
   GPIO_FUNC_OUT_SEL_CFG_REG[21]=256;
   GPIO_FUNC_OUT_SEL_CFG_REG[22]=256;
   //GPIO_FUNC_OUT_SEL_CFG_REG[23]=256;
+  GPIO_FUNC_OUT_SEL_CFG_REG[26]=256;
   GPIO_FUNC_OUT_SEL_CFG_REG[27]=256;
   REG(GPIO_ENABLE_REG)[0]=BIT(12)|BIT(13)
-  |BIT(14)|BIT(15)|BIT(16)|BIT(17)|BIT(18)
-  |BIT(19)|BIT(21)|BIT(22)|BIT(23)|BIT(27);
-  //36 and 39  
-  REG(GPIO_ENABLE_REG)[3]=0;
-    REG(IO_MUX_GPIO32_REG)[0]=BIT(9)|BIT(8); //input enable
-    REG(IO_MUX_GPIO32_REG)[1]=BIT(9)|BIT(8); //input enable
-
- // REG(IO_MUX_GPIO36_REG)[0]=BIT(9)|BIT(8); //input enable
- // REG(IO_MUX_GPIO36_REG)[3]=BIT(9)|BIT(8); //input enable
+  |BIT(14)|BIT(15)|BIT(16)|BIT(17)
+  |BIT(21)|BIT(22)|BIT(26)|BIT(27); //ouit freaqs  
+  REG(GPIO_ENABLE_REG)[3]=2; //output enable 33
+  REG(IO_MUX_GPIO32_REG)[0]=BIT(9)|BIT(8); //input enable
   REG(IO_MUX_GPIO34_REG)[1]=BIT(9)|BIT(8); //input enable
-  REG(IO_MUX_GPIO34_REG)[0]=0;
-
+  REG(IO_MUX_GPIO34_REG)[0]=BIT(9)|BIT(8); //input enable
  REG(IO_MUX_GPIO2_REG)[0]=BIT(9)|BIT(8); //input enable
  attachInterrupt(2,pigHandler,FALLING);
 }
-
-void loop() {
+void loop() {} 
+void sloop() {
   int ryo;
  // return;
   printf("yo");
