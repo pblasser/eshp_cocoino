@@ -67,12 +67,12 @@ void IRAM_ATTR pigHandler() {
    }
    ppread=((delptr[delayptr&0xFFFF])<<4);    
    ppread |= ((belptr[delayptr>>1&0x7FFF])&(0xF<<forsh)>>forsh);
- //if (!butt) {
+ if (!butt) {
   delptr[delayptr&0xFFFF]=(uint8_t)(gyo>>4);
   belptr[delayptr>>1&0x7FFF]&=(uint8_t)(gyo&0xF<<(4-forsh));
   belptr[delayptr>>1&0x7FFF]|=(uint8_t)(gyo&0xF<<forsh);
   
- //}
+ }
   if (GPIO_IN1_REG[0]&0x8) delayptr++;
   else delayptr--; 
   delayptr=delayptr&0x1FFFF;
