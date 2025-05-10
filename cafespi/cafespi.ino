@@ -41,10 +41,11 @@ int buttflip;
 int ppread;
 int gyo;
 int forsh;
-uint32_t rdr;
+int rdr;
+int wtr;
 
 void IRAM_ATTR pigHandler() {
- REG(GPIO_STATUS_W1TC_REG)[0]=0xFFFFFFFF;
+   REG(GPIO_STATUS_W1TC_REG)[0]=0xFFFFFFFF;
  REG(GPIO_STATUS1_W1TC_REG)[0]=0xFFFFFFFF;
  
  REG(SPI3_W8_REG)[0]=(0x9000|ppread)<<16;
@@ -75,7 +76,7 @@ void IRAM_ATTR pigHandler() {
  }
   if (GPIO_IN1_REG[0]&0x8) delayptr++;
   else delayptr--; 
-  delayptr=delayptr&0x1FFFF;
+  delayptr=delayptr&0x1FFFF;//(0x1FFFF>>(rdr>>4));
 
   if (GPIO_IN1_REG[0]&0x4)  {
    if (lastskp==0) delayskp = delayptr;
@@ -85,17 +86,23 @@ void IRAM_ATTR pigHandler() {
    lastskp = 0;
   } 
 
-      volatile uint32_t *rr = REG(ESP32_SENS_SAR_MEAS_START2);
-    //uint32_t rdrr = REG(ESP32_SENS_SAR_MEAS_START1)[0];
-    rdr = rr[0];
-    rdr=rdr>>4&0xFF;
-       REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  (rdr)<<19;
-  //  REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((REG(RNG_REG)[0]&0xFF)<<19);
-    REG(SENS_SAR_ATTEN2_REG)[0]=0x1;
-    REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19); //pin g4
+          volatile uint32_t *rr = REG(ESP32_SENS_SAR_MEAS_START2);
+         uint32_t rdrr = rr[0];
+    if (rdrr&(1<<16)) { 
+      rdr=(rdrr>>3&0xFFF)-220;
+      if(rdr<0)rdr=0;
+         REG(SENS_SAR_ATTEN2_REG)[0]=1;//0x1;
+      REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19); //pin g4
     
-     REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19)|BIT(17);
+       REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19)|BIT(17);
 
+    
+
+       REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  (rdr)<<19;
+     }
+ //    wtr = rdr;
+//REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((REG(RNG_REG)[0]&0xFF)<<19);
+    
      
   int buttnow = (GPIO_IN1_REG[0]&0x1);
   if (buttflip^buttnow)
@@ -105,6 +112,10 @@ void IRAM_ATTR pigHandler() {
   GPIO_OUT_REG[0]=(uint32_t)(delayptr<<12);
   if (butt) GPIO_OUT_REG[3]=2;
   else GPIO_OUT_REG[3]=0;  
+
+
+
+
 }
 
 
@@ -122,8 +133,18 @@ void setup() {
  printf("yodel %08x,%08x,%08x,%08x\n",delaybuffa,delaybuffb,delaybuffc,delaybuffd);
  //esp_task_wdt_init(30, false);
   //to be fixed
+
+
+     // REG(SENS_SAR_ATTEN2_REG)[0]=1;//0x1;
+    //REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19); //pin g4
+    
+     //REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19)|BIT(17);
+
+
+
+     
   REG(ESP32_SENS_SAR_DAC_CTRL1)[0] = 0x0; 
-  //REG(ESP32_SENS_SAR_DAC_CTRL2)[0] = 0x0; 
+  REG(ESP32_SENS_SAR_DAC_CTRL2)[0] = 0x0; 
   //initiate DIG
       initRTC();
   //function 2 on the 12 block
@@ -204,18 +225,44 @@ void setup() {
  attachInterrupt(2,pigHandler,FALLING);
 }
 void loop() {} 
+
 void sloop() {
+
+     volatile uint32_t *rr = REG(ESP32_SENS_SAR_MEAS_START2);
+         uint32_t rdrr = rr[0];
+    if (rdrr&(1<<16)) { 
+      rdr=(rdrr>>3&0xFFF)-220;
+      if(rdr<0)rdr=0;
+      REG(SENS_SAR_ATTEN2_REG)[0]=1;//0x1;
+      REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19); //pin g4    
+       REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19)|BIT(17);
+REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  (wtr)<<19;
+     }
+}
+
+
+
+void ssloop() {
   int ryo;
  // return;
   printf("yo");
   for (;;) {
     ryo++;
-    if (ryo>1000000) ryo = 0;  
+    if (ryo>10000) ryo = 0;  
     if (ryo==0) {
       
      int gyo;
      gyo=REG(SPI3_W0_REG)[0];
-    printf("\n-----%d-------%x\n",(int)rdr,(int)gyo); 
+     volatile uint32_t *rr = REG(ESP32_SENS_SAR_MEAS_START2);
+         uint32_t rdrr = rr[0];
+    //if (rdrr&(1<<16)) { 
+      rdr=(rdrr>>3&0xFFF)-220;
+      if(rdr<0)rdr=0;
+         REG(SENS_SAR_ATTEN2_REG)[0]=1;//0x1;
+      REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19); //pin g4
+    
+       REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19)|BIT(17);
+   // printf("\n-----%d-------%x\n",(int)rdr>>4,(int)gyo); 
      
      //printf("\n-----%d-------%d\n",(int)REG(SPI2_USER_REG)[0],REG(SPI2_MOSI_DLEN_REG)[0]); 
      //printf("\n-----%x-------%x\n",REG(SPI3_W8_REG)[0],REG(SPI3_W0_REG)[0]); 

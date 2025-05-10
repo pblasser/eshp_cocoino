@@ -12,18 +12,19 @@ static uint32_t dmall[3];
 
 
 void initRTC() {
+  esp_task_wdt_init(30, false);
 //REG(DPORT_WIFI_CLK_EN_REG)[0]=0;
   REG(SENS_SAR_READ_CTRL2_REG)[0] |= BIT(29); //inv
   REG(SENS_SAR_MEAS_START2_REG)[0] |= BIT(31);
   REG(SENS_SAR_MEAS_START2_REG)[0] |= BIT(18);
   REG(SENS_SAR_ATTEN2_REG)[0] = 0x1;//4 IO_MUX and GPIO Matrix (GPIO, IO_MUX)
-  REG(SENS_SAR_MEAS_CTRL_REG)[0] &= ~((uint32_t)0xFFFF<<0); //clear fsm
-  REG(SENS_SAR_MEAS_WAIT1_REG)[0] = 0x00010001;
-  REG(SENS_SAR_MEAS_WAIT2_REG)[0] |= (2<<16);//powerdiwb forx xpdamp0
-  REG(SENS_SAR_MEAS_WAIT2_REG)[0] &= ~((uint32_t)0xFFFF);
-  REG(SENS_SAR_MEAS_WAIT2_REG)[0] |= 0x2;//|BIT(17)|BIT(19);
-  REG(SENS_SAR_MEAS_WAIT2_REG)[0] |= BIT(18)|BIT(19); //force power on to xpd sar  
-  REG(SENS_SAR_TOUCH_ENABLE_REG)[0] = 0; //touch pads off
+  //REG(SENS_SAR_MEAS_CTRL_REG)[0] &= ~((uint32_t)0xFFFF<<0); //clear fsm
+  //REG(SENS_SAR_MEAS_WAIT1_REG)[0] = 0x00010001;
+  //REG(SENS_SAR_MEAS_WAIT2_REG)[0] |= (2<<16);//powerdiwb forx xpdamp0
+  //REG(SENS_SAR_MEAS_WAIT2_REG)[0] &= ~((uint32_t)0xFFFF);
+  //REG(SENS_SAR_MEAS_WAIT2_REG)[0] |= 0x2;//|BIT(17)|BIT(19);
+  //REG(SENS_SAR_MEAS_WAIT2_REG)[0] |= BIT(18)|BIT(19); //force power on to xpd sar  
+  //REG(SENS_SAR_TOUCH_ENABLE_REG)[0] = 0; //touch pads off
   REG(ESP32_RTCIO_ADC_PAD)[0] = BIT(28)|BIT(22)|BIT(21)|BIT(18);
 //28 is adc2 mux rtc, 22 fun sel 21, 18 ie
 //for sar2 that is
