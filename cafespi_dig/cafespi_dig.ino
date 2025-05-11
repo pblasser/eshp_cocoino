@@ -10,7 +10,7 @@
 #define BCKMAGIC 6<<6 //6 7
 #define CLKMAGIC 6 //4
 #define ADC1_PATT (0x6C<<24)
-#define ADC2_PATT (0x0E<<24)
+#define ADC2_PATT (0x0D<<24)
 
 
 #include "sketch.h"
@@ -86,25 +86,15 @@ void IRAM_ATTR pigHandler() {
    lastskp = 0;
   } 
 
-          volatile uint32_t *rr = REG(ESP32_SENS_SAR_MEAS_START2);
-         uint32_t rdrr = rr[0];
-    if (rdrr&(1<<16)) { 
-      rdr=(rdrr>>3&0xFFF)-220;
-      if(rdr<0)rdr=0;
-         REG(SENS_SAR_ATTEN2_REG)[0]=1;//0x1;
-      REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19); //pin g4
-    
-       REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19)|BIT(17);
 
-    
+   REG(I2S_CONF_REG)[0] &= ~(BIT(5)); 
+ volatile uint32_t *rr = REG(I2S_FIFO_RD_REG);
+ adc_read = rr[0];
+ adc_read=((adc_read>>3)-16);
+  REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((adc_read&0xFF)<<19);
+ REG(I2S_INT_CLR_REG)[0]=0xFFFFFFFF;
+ REG(I2S_CONF_REG)[0] |= (BIT(5)); //start rx
 
-       //REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  (rdr)<<19;
-       REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  (delayptr&0xFF)<<19;
-     }
- //    wtr = rdr;
-//REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((REG(RNG_REG)[0]&0xFF)<<19);
-    
-     
   int buttnow = (GPIO_IN1_REG[0]&0x1);
   if (buttflip^buttnow)
    if (buttnow) butt = !butt;
@@ -147,7 +137,7 @@ void setup() {
   REG(ESP32_SENS_SAR_DAC_CTRL1)[0] = 0x0; 
   REG(ESP32_SENS_SAR_DAC_CTRL2)[0] = 0x0; 
   //initiate DIG
-      initRTC();
+      initDIG();
   //function 2 on the 12 block
   REG(IO_MUX_GPIO12ISH_REG)[0]=BIT(13); //sdi2 q MISO
   REG(IO_MUX_GPIO12ISH_REG)[1]=BIT(13); //d MOSI
@@ -243,35 +233,23 @@ REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  (wtr)<<19;
 
 
 
-void ssloop() {
+void tttloop() {
   int ryo;
  // return;
   printf("yo");
   for (;;) {
     ryo++;
-    if (ryo>10000) ryo = 0;  
+    if (ryo>100000) ryo = 0;  
     if (ryo==0) {
       
      int gyo;
-     gyo=REG(SPI3_W0_REG)[0];
-     volatile uint32_t *rr = REG(ESP32_SENS_SAR_MEAS_START2);
-         uint32_t rdrr = rr[0];
-    //if (rdrr&(1<<16)) { 
-      rdr=(rdrr>>3&0xFFF)-220;
-      if(rdr<0)rdr=0;
-         REG(SENS_SAR_ATTEN2_REG)[0]=1;//0x1;
-      REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19); //pin g4
-    
-       REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19)|BIT(17);
-   // printf("\n-----%d-------%x\n",(int)rdr>>4,(int)gyo); 
+     
+prr("I2S_INT_RAW_REG",I2S_CONF_REG); 
+   printf("\n-----%x-------%x\n",(int)adc_read&0xFFFF,(int)gyo); 
      
      //printf("\n-----%d-------%d\n",(int)REG(SPI2_USER_REG)[0],REG(SPI2_MOSI_DLEN_REG)[0]); 
      //printf("\n-----%x-------%x\n",REG(SPI3_W8_REG)[0],REG(SPI3_W0_REG)[0]); 
-     
-     for(int z=31;z>=15;z--) {
-      //printf("%u",(gyo>>z)&1);
-     }
-     //printf("\n"); 
+
      
     }
  } 
