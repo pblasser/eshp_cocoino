@@ -76,7 +76,8 @@ void IRAM_ATTR pigHandler() {
  }
   if (GPIO_IN1_REG[0]&0x8) delayptr++;
   else delayptr--; 
-  delayptr=delayptr&0x1FFFF;//(0x1FFFF>>(rdr>>4));
+  delayptr=delayptr&0x1FFFF;//
+  delayptr=delayptr(0x1FFFF>>(rdr>>4));
 
   if (GPIO_IN1_REG[0]&0x4)  {
    if (lastskp==0) delayskp = delayptr;
@@ -98,8 +99,8 @@ void IRAM_ATTR pigHandler() {
 
     
 
-       //REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  (rdr)<<19;
-       REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  (delayptr&0xFF)<<19;
+       REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  (rdr)<<19;
+       &&REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  (delayptr&0xFF)<<19;
      }
  //    wtr = rdr;
 //REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((REG(RNG_REG)[0]&0xFF)<<19);

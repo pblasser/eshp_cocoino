@@ -31,7 +31,7 @@ static int delayskp;
 static int lastskp;
 uint8_t dell;
 
-uint32_t adc_read;
+int adc_read;
 int akkuval;
 bool butt;
 bool buttest;
@@ -76,7 +76,8 @@ void IRAM_ATTR pigHandler() {
  }
   if (GPIO_IN1_REG[0]&0x8) delayptr++;
   else delayptr--; 
-  delayptr=delayptr&0x1FFFF;//(0x1FFFF>>(rdr>>4));
+  delayptr=delayptr&0x1FFFF;//
+  delayptr=delayptr&(0x1FFFF>>(adc_read>>6));
 
   if (GPIO_IN1_REG[0]&0x4)  {
    if (lastskp==0) delayskp = delayptr;
@@ -89,8 +90,9 @@ void IRAM_ATTR pigHandler() {
 
    REG(I2S_CONF_REG)[0] &= ~(BIT(5)); 
  volatile uint32_t *rr = REG(I2S_FIFO_RD_REG);
- adc_read = rr[0];
- adc_read=((adc_read>>3)-16);
+ adc_read = rr[0]&0x7FF;
+ adc_read=((adc_read>>3)-32);
+ if (adc_read<0)adc_read=0;
   REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((adc_read&0xFF)<<19);
  REG(I2S_INT_CLR_REG)[0]=0xFFFFFFFF;
  REG(I2S_CONF_REG)[0] |= (BIT(5)); //start rx
@@ -244,7 +246,7 @@ void tttloop() {
       
      int gyo;
      
-prr("I2S_INT_RAW_REG",I2S_CONF_REG); 
+prr("I2S_INT_RAW_REG",I2S_FIFO_RD_REG); 
    printf("\n-----%x-------%x\n",(int)adc_read&0xFFFF,(int)gyo); 
      
      //printf("\n-----%d-------%d\n",(int)REG(SPI2_USER_REG)[0],REG(SPI2_MOSI_DLEN_REG)[0]); 
