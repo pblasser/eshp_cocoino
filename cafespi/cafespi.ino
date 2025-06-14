@@ -43,7 +43,15 @@ int gyo;
 int forsh;
 int rdr;
 int wtr;
+int bullshit;
 
+void IRAM_ATTR jigHandler() {
+     REG(GPIO_STATUS_W1TC_REG)[0]=0xFFFFFFFF;
+ REG(GPIO_STATUS1_W1TC_REG)[0]=0xFFFFFFFF;
+ bullshit++;
+ butt = !butt;
+
+}
 void IRAM_ATTR pigHandler() {
    REG(GPIO_STATUS_W1TC_REG)[0]=0xFFFFFFFF;
  REG(GPIO_STATUS1_W1TC_REG)[0]=0xFFFFFFFF;
@@ -77,7 +85,7 @@ void IRAM_ATTR pigHandler() {
   if (GPIO_IN1_REG[0]&0x8) delayptr++;
   else delayptr--; 
   delayptr=delayptr&0x1FFFF;//
-  delayptr=delayptr(0x1FFFF>>(rdr>>4));
+  delayptr=delayptr&(0x1FFFF>>(rdr>>4));
 
   if (GPIO_IN1_REG[0]&0x4)  {
    if (lastskp==0) delayskp = delayptr;
@@ -100,7 +108,7 @@ void IRAM_ATTR pigHandler() {
     
 
        REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  (rdr)<<19;
-       &&REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  (delayptr&0xFF)<<19;
+       //REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  (delayptr&0xFF)<<19;
      }
  //    wtr = rdr;
 //REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((REG(RNG_REG)[0]&0xFF)<<19);
@@ -108,7 +116,7 @@ void IRAM_ATTR pigHandler() {
      
   int buttnow = (GPIO_IN1_REG[0]&0x1);
   if (buttflip^buttnow)
-   if (buttnow) butt = !butt;
+  // if (buttnow) butt = !butt;
   buttflip =  buttnow;//(GPIO_IN1_REG[0]&0x1);
   
   GPIO_OUT_REG[0]=(uint32_t)(delayptr<<12);
@@ -225,6 +233,8 @@ void setup() {
   REG(IO_MUX_GPIO34_REG)[0]=BIT(9)|BIT(8); //input enable
  REG(IO_MUX_GPIO2_REG)[0]=BIT(9)|BIT(8); //input enable
  attachInterrupt(2,pigHandler,FALLING);
+ attachInterrupt(32,jigHandler,RISING);
+
 }
 void loop() {} 
 
@@ -244,8 +254,10 @@ REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  (wtr)<<19;
 
 
 
-void ssloop() {
+void erloop() {
   int ryo;
+  bullshit=0;
+  gyo=0;
  // return;
   printf("yo");
   for (;;) {
@@ -253,18 +265,8 @@ void ssloop() {
     if (ryo>10000) ryo = 0;  
     if (ryo==0) {
       
-     int gyo;
-     gyo=REG(SPI3_W0_REG)[0];
-     volatile uint32_t *rr = REG(ESP32_SENS_SAR_MEAS_START2);
-         uint32_t rdrr = rr[0];
-    //if (rdrr&(1<<16)) { 
-      rdr=(rdrr>>3&0xFFF)-220;
-      if(rdr<0)rdr=0;
-         REG(SENS_SAR_ATTEN2_REG)[0]=1;//0x1;
-      REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19); //pin g4
-    
-       REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19)|BIT(17);
-   // printf("\n-----%d-------%x\n",(int)rdr>>4,(int)gyo); 
+
+   printf("-----%d-------%d\n",(int)bullshit,(int)gyo); 
      
      //printf("\n-----%d-------%d\n",(int)REG(SPI2_USER_REG)[0],REG(SPI2_MOSI_DLEN_REG)[0]); 
      //printf("\n-----%x-------%x\n",REG(SPI3_W8_REG)[0],REG(SPI3_W0_REG)[0]); 

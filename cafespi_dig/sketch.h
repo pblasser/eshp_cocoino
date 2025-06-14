@@ -97,6 +97,7 @@ CHANG(SENS_SAR_MEAS_CTRL_REG,(uint32_t)0xFF07338F) //default
   
   CHANG(I2S_FIFO_CONF_REG,BIT(12)|BIT(5)|BIT(20))
   CHANG(I2S_FIFO_CONF_REG,BIT(5)|BIT(20))
+  CHANG(I2S_FIFO_CONF_REG,BIT(20))
   //NODMA
   //bit 16 is single channel|BIT(17)) is 32bit
   //20forcemod 16rxmod 12dmaconnect 5rxdatanum32

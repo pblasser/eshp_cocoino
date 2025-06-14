@@ -94,6 +94,13 @@ void IRAM_ATTR pigHandler() {
  adc_read=((adc_read>>3)-32);
  if (adc_read<0)adc_read=0;
   REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((adc_read&0xFF)<<19);
+
+
+  //REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((delayptr&0xFF)<<19);
+  //REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((REG(RNG_REG)[0]&0xFF)<<19);
+  //todo get random again by SAR 
+  
+    
  REG(I2S_INT_CLR_REG)[0]=0xFFFFFFFF;
  REG(I2S_CONF_REG)[0] |= (BIT(5)); //start rx
 
