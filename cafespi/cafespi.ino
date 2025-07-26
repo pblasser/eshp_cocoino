@@ -111,7 +111,7 @@ void IRAM_ATTR pigHandler() {
        //REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  (delayptr&0xFF)<<19;
      }
  //    wtr = rdr;
-//REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((REG(RNG_REG)[0]&0xFF)<<19);
+REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((REG(RNG_REG)[0]&0xFF)<<19);
     
      
   int buttnow = (GPIO_IN1_REG[0]&0x1);
@@ -184,7 +184,7 @@ void setup() {
   REG(SPI3_W8_REG)[0]=(d)<<16; \ 
   REG(SPI3_CMD_REG)[0]=BIT(18); \
   spin(SPINNER);
-  spin(SPINNER*100);
+  spin(SPINNER*10);
 
   //do a few nops firszt
   printf("yoz\n"); 
