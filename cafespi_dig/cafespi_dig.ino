@@ -181,7 +181,7 @@ esp_task_wdt_init(30, false);
   REG(SPI3_W8_REG)[0]=(d)<<16; \ 
   REG(SPI3_CMD_REG)[0]=BIT(18); \
   spin(SPINNER);
-  spin(SPINNER*100);
+  spin(SPINNER*5);
 
   //do a few nops firszt
   printf("yoz\n"); 
