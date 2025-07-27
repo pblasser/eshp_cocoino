@@ -43,6 +43,16 @@ int gyo;
 int forsh;
 int rdr;
 int wtr;
+int bullshit;
+
+void IRAM_ATTR jigHandler() {
+     REG(GPIO_STATUS_W1TC_REG)[0]=0xFFFFFFFF;
+ REG(GPIO_STATUS1_W1TC_REG)[0]=0xFFFFFFFF;
+ bullshit++;
+ butt = !butt;
+
+}
+
 
 void IRAM_ATTR pigHandler() {
    REG(GPIO_STATUS_W1TC_REG)[0]=0xFFFFFFFF;
@@ -77,7 +87,7 @@ void IRAM_ATTR pigHandler() {
   if (GPIO_IN1_REG[0]&0x8) delayptr++;
   else delayptr--; 
   delayptr=delayptr&0x1FFFF;//
-  delayptr=delayptr&(0x1FFFF>>(adc_read>>6));
+  //delayptr=delayptr&(0x1FFFF>>(adc_read>>6));
 
   if (GPIO_IN1_REG[0]&0x4)  {
    if (lastskp==0) delayskp = delayptr;
@@ -91,23 +101,19 @@ void IRAM_ATTR pigHandler() {
    REG(I2S_CONF_REG)[0] &= ~(BIT(5)); 
  volatile uint32_t *rr = REG(I2S_FIFO_RD_REG);
  adc_read = rr[0]&0x7FF;
- adc_read=((adc_read>>3)-32);
+ adc_read=((adc_read>>3));//-32);
  if (adc_read<0)adc_read=0;
-  REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((adc_read&0xFF)<<19);
-
-
-  //REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((delayptr&0xFF)<<19);
-  //REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((REG(RNG_REG)[0]&0xFF)<<19);
-  //todo get random again by SAR 
-  
+ REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  ((adc_read&0xFF)<<19);
+ //REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((delayptr&0xFF)<<19);
+ //REG(ESP32_RTCIO_PAD_DAC1)[0] = BIT(10) | BIT(17) | BIT(18) |  ((rand()&0xFF)<<19);
     
  REG(I2S_INT_CLR_REG)[0]=0xFFFFFFFF;
  REG(I2S_CONF_REG)[0] |= (BIT(5)); //start rx
 
-  int buttnow = (GPIO_IN1_REG[0]&0x1);
-  if (buttflip^buttnow)
-   if (buttnow) butt = !butt;
-  buttflip =  buttnow;//(GPIO_IN1_REG[0]&0x1);
+  //int buttnow = (GPIO_IN1_REG[0]&0x1);
+  //if (buttflip^buttnow)
+  // if (buttnow) butt = !butt;
+  //buttflip =  buttnow;//(GPIO_IN1_REG[0]&0x1);
   
   GPIO_OUT_REG[0]=(uint32_t)(delayptr<<12);
   if (butt) GPIO_OUT_REG[3]=2;
@@ -134,7 +140,7 @@ void setup() {
  //esp_task_wdt_init(30, false);
   //to be fixed
 
-
+esp_task_wdt_init(30, false);
      // REG(SENS_SAR_ATTEN2_REG)[0]=1;//0x1;
     //REG(ESP32_SENS_SAR_MEAS_START2)[0]=BIT(18)|BIT(31)|BIT(19); //pin g4
     
@@ -147,6 +153,7 @@ void setup() {
   REG(ESP32_SENS_SAR_DAC_CTRL2)[0] = 0x0; 
   //initiate DIG
       initDIG();
+      //initRTC();
   //function 2 on the 12 block
   REG(IO_MUX_GPIO12ISH_REG)[0]=BIT(13); //sdi2 q MISO
   REG(IO_MUX_GPIO12ISH_REG)[1]=BIT(13); //d MOSI
@@ -222,7 +229,9 @@ void setup() {
   REG(IO_MUX_GPIO34_REG)[1]=BIT(9)|BIT(8); //input enable
   REG(IO_MUX_GPIO34_REG)[0]=BIT(9)|BIT(8); //input enable
  REG(IO_MUX_GPIO2_REG)[0]=BIT(9)|BIT(8); //input enable
+ 
  attachInterrupt(2,pigHandler,FALLING);
+ attachInterrupt(32,jigHandler,RISING);
 }
 void loop() {} 
 
