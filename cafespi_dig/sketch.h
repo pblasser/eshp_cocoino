@@ -115,8 +115,9 @@ CHANG(SENS_SAR_MEAS_CTRL_REG,(uint32_t)0xFF07338F) //default
   CHANG(APB_SARADC_SAR2_PATT_TAB1_REG,ADC2_PATT)
   
   //adc set controller DIG
-  CHANGOR(SENS_SAR_READ_CTRL_REG,BIT(27)|BIT(28))
-  CHANG(SENS_SAR_READ_CTRL_REG,BIT(27)|BIT(28)|BIT(17)|BIT(16)|0xFFFF)//0xFFFF
+  /////////////////////adc 1 was on but now the force is gone
+  //CHANGOR(SENS_SAR_READ_CTRL_REG,BIT(27)|BIT(28))
+  //CHANG(SENS_SAR_READ_CTRL_REG,BIT(27)|BIT(28)|BIT(17)|BIT(16)|0xFFFF)//0xFFFF
   //bottom bytes sample cycle and clock div
   
   CHANGOR(SENS_SAR_READ_CTRL2_REG,BIT(28)|BIT(29))
