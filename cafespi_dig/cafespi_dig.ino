@@ -68,8 +68,8 @@ REG(TIMG0_T0LOAD_REG)[0]=BIT(1);
   if (tima<0x40000){
    preset++;
    preset = preset %2;
-   //attachInterrupt(2,presets[preset],FALLING);
-   attachInterrupt(2,presets[0],FALLING);
+   attachInterrupt(2,presets[preset],FALLING);
+   //attachInterrupt(2,presets[0],FALLING);
 
 
   }
@@ -100,10 +100,19 @@ int dellius(int ptr, int val, bool but) {
 }
 
 
-int myNumbers[] = {3000, 2578, 2444, 2111};
+int myNumbers[] = {32000, 31578, 22444, 25111};
 //you need to make a table that is 0,3000,5578
 int myPlacers[] = {0, 0, 0, 0};
 
+
+//int myNumbers[] = {12000, 11578, 14444, 15111,8900, 10278, 12004, 12111};
+//you need to make a table that is 0,3000,5578
+//int myPlacers[] = {0, 0, 0, 0,0,0,0,0};
+
+int tapsz=sizeof(myPlacers)>>2;
+
+
+int hipass;
 void IRAM_ATTR vinegarHandler() {
  REG(GPIO_STATUS_W1TC_REG)[0]=0xFFFFFFFF;
  REG(GPIO_STATUS1_W1TC_REG)[0]=0xFFFFFFFF;
@@ -111,23 +120,31 @@ void IRAM_ATTR vinegarHandler() {
  REG(SPI3_CMD_REG)[0]=BIT(18);
  gyo=REG(SPI3_W0_REG)[0];
  gyo =gyo>>16;
+ gyo&=0xFFF;
+ 
+ //gyo=0xFFF-gyo;
 //delpta, delpte, forsha, forshe
 //adc, dac
 //num
  bullshit = 2;
  ppread =0;
- for (int i=0; i<4; i++) 
-  ppread+=dellius((myPlacers[i]<<2)+(i<<2),gyo,butt);
+ for (int i=0; i<tapsz; i++) 
+  ppread+=dellius((myPlacers[i]<<2)+i,gyo,butt);
+  //there was a weird multitap mistake
+  //ppread+=dellius((myPlacers[i]<<2)+(i<<2),gyo,butt);
+ hipass=((hipass*255)+(ppread-2048))>>8;
+ //ppread = ppread-hipass;
  ppread = ppread>>2;
  
   if (GPIO_IN1_REG[0]&0x8)
-   for (int i=0; i<4; i++)  //sizeof(myPlacers)
+   for (int i=0; i<tapsz; i++)  //sizeof(myPlacers)
     myPlacers[i]++;
   else 
-   for (int i=0; i<4; i++) 
+   for (int i=0; i<tapsz; i++) 
     myPlacers[i]--;
-  for (int i=0; i<4; i++) {
+  for (int i=0; i<tapsz; i++) {
    myPlacers[i] %= myNumbers[i];
+   
    if (myPlacers[i]<0) myPlacers[i] += myNumbers[i];
   }
   //delayptr=delayptr&0x1FFFF;//
@@ -153,7 +170,7 @@ void IRAM_ATTR vinegarHandler() {
     
  REG(I2S_INT_CLR_REG)[0]=0xFFFFFFFF;
  REG(I2S_CONF_REG)[0] |= (BIT(5)); //start rx
- GPIO_OUT_REG[0]=(uint32_t)(delayptr<<12);
+ GPIO_OUT_REG[0]=(uint32_t)(myPlacers[0]+myPlacers[1]+myPlacers[2]+myPlacers[3]<<12);
  if (butt) GPIO_OUT_REG[3]=2;
  else GPIO_OUT_REG[3]=0;  
 }
@@ -271,7 +288,7 @@ void IRAM_ATTR pigHandler() {
 
 void setup() { 
  presets[0]=whigHandler;
- presets[1]=pigHandler;
+ presets[1]=vinegarHandler;
  delaybuffa=(uint8_t*)malloc(delaysiz+(delaysiz>>1));
  delptr=delaybuffa;
  delayptr=0;
@@ -386,7 +403,7 @@ esp_task_wdt_init(30, false);
  attachInterrupt(2,whigHandler,FALLING);
  attachInterrupt(32,jigHandler,CHANGE);
 }
-void zloop() {} 
+void loop() {} 
 
 void sloop() {
 
@@ -404,7 +421,7 @@ REG(ESP32_RTCIO_PAD_DAC1)[0] =  BIT(10) | BIT(17) | BIT(18) |  (wtr)<<19;
 
 
 
-void loop() {
+void yloop() {
   int ryo;
   unsigned int buttress=0;
  // return;
